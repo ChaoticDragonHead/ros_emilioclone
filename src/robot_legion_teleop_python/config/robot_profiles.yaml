@@ -1,0 +1,268 @@
+# SPDX-License-Identifier: LicenseRef-Proprietary
+#
+# ⭐ Relationship to drive_types.py:
+# - This YAML selects each robot's drive_profile + hardware_profile.
+# - drive_types.py uses drive_profile.type to choose the mixing logic for Twist.
+
+defaults:
+  drive_profile: diff_drive
+  hardware_profile: L298N_diff
+
+# ------------------------------------------------------------------------------
+# Params Reference (supported keys)
+#
+# drive_profiles.*.params:
+#   wheel_base_m              (float)  Wheel base / separation used by diff-drive math
+#   track_width_m             (float)  Omni/mecanum track width (future use)
+#   max_linear_mps            (float)  Max linear speed clamp
+#   max_angular_rps           (float)  Max angular speed clamp
+#   watchdog_timeout_s        (float)  Motor driver cmd timeout
+#   spin_speed_mult           (float)  Tank-spin speed multiplier (0..1)
+#   stall_timeout_s           (float)  Time allowed above stall_duty_pct before cutting output
+#   stall_duty_pct            (float)  Duty threshold considered "stalled"
+#   teleop_linear_mps         (float)  Teleop base linear speed
+#   teleop_angular_rps        (float)  Teleop base angular speed
+#   teleop_speed_step         (float)  Teleop speed step multiplier
+#   teleop_medium_steps       (int)    Steps from base to medium
+#   teleop_fast_linear_steps  (int)    Steps from base to fast linear
+#   teleop_fast_angular_steps (int)    Steps from base to fast angular
+#   teleop_omni_turn_gain     (float)  Omni circle-turn angular gain (multiplies angular speed)
+#   teleop_smoothing_alpha    (float)  Twist smoothing factor (0=off, 1=very smooth)
+#   fpv_lease_ttl_sec         (float)  FPV claim lease TTL
+#
+# hardware_profiles.*.params:
+#   pwm_hz   (int)   PWM frequency
+#   max_pwm  (int)   PWM duty cap (0..100)
+#   pwm_ramp_ms       (float) Soft-start ramp time for 0->100% duty
+#   pwm_deadband_pct  (float) Duty below this is treated as 0
+#   cmd_rate_hz       (float) Max motor command update rate (0 = no limit)
+#   pwm_slew_pct_per_s (float) Max duty change per second (0 = no limit)
+#
+# robots.*.params (per-robot overrides):
+#   drive: { ... any drive params above ... }
+#   hardware: { ... any hardware params above ... }
+# ------------------------------------------------------------------------------
+
+robots:
+  # Differential-drive robots
+
+  robot0:
+    drive_profile: diff_drive
+    hardware_profile: L298N_diff
+  robot1:
+    drive_profile: diff_drive
+    hardware_profile: dual_tb6612_diff
+    params:
+      drive:
+        # Snappy but safe starting values for tank-track TB6612 setup
+        stall_timeout_s: 0
+        stall_duty_pct: 0
+        teleop_smoothing_alpha: 0.0
+
+  robot2:
+    drive_profile: mecanum_drive
+    hardware_profile: dual_tb6612_mecanum
+    params:
+      drive:
+        # Field calibration:
+        # commanded 1.00 m -> observed 0.90 m, so duration scale = 1/0.9
+        orchestrator_linear_duration_scale: 1.111111
+        # Safety tune for V-path planner load:
+        # reduce detour aggressiveness on robot2 to limit current spikes.
+        orchestrator_max_detour_scale: 0.45
+        # Balanced tune: faster than prior safe-mode while keeping current bounded.
+        max_linear_mps: 0.34
+        max_angular_rps: 1.5
+        spin_speed_mult: 0.6
+        # Re-enable stall protection.
+        stall_timeout_s: 0.6
+        stall_duty_pct: 70
+      hardware:
+        # Keep smoother step-changes but allow higher top speed.
+        max_pwm: 78
+        pwm_ramp_ms: 120
+        pwm_deadband_pct: 3
+        cmd_rate_hz: 40
+        pwm_slew_pct_per_s: 220
+
+  robot3:
+    drive_profile: diff_drive
+    hardware_profile: L298N_diff
+    params:
+      drive:
+        # Field calibration:
+        # commanded 1.00 m -> observed 0.90 m
+        orchestrator_linear_duration_scale: 1.111111
+        # second-pass field calibration:
+        # previous 2.0 caused ~8-10 deg overshoot at 90 deg command
+        orchestrator_angular_duration_scale: 1.2
+
+  # Omni robot (TB6612 x2)
+  robot_omni:
+    drive_profile: mecanum_drive
+    hardware_profile: dual_tb6612_mecanum
+
+drive_profiles:
+  diff_drive:
+    type: diff_drive
+    params:
+      # Primary drive constraints
+      wheel_base_m: 0.18
+      max_linear_mps: 0.4
+      max_angular_rps: 2.0
+      watchdog_timeout_s: 0.5
+      spin_speed_mult: 0.7
+      stall_timeout_s: 0
+      stall_duty_pct: 0
+
+      # Teleop defaults (keyboard)  
+      teleop_linear_mps: 0.5
+      teleop_angular_rps: 1.0
+      teleop_speed_step: 1.1
+      teleop_medium_steps: 10
+      teleop_fast_linear_steps: 15
+      teleop_fast_angular_steps: 10
+      teleop_omni_turn_gain: 0.5
+      teleop_smoothing_alpha: 0.0
+
+      # FPV defaults
+      fpv_lease_ttl_sec: 3.0
+
+  mecanum_drive:
+    type: omni
+    params:
+      # These are placeholders for configuring proper kinematics  
+      wheel_base_m: 0.18
+      track_width_m: 0.18
+      max_linear_mps: 0.4
+      max_angular_rps: 2.0
+      watchdog_timeout_s: 0.5
+      spin_speed_mult: 0.7
+      stall_timeout_s: 0
+      stall_duty_pct: 0
+
+      # Teleop defaults (keyboard)
+      teleop_linear_mps: 0.5
+      teleop_angular_rps: 1.0
+      teleop_speed_step: 1.1
+      teleop_medium_steps: 10
+      teleop_fast_linear_steps: 15
+      teleop_fast_angular_steps: 10
+      teleop_omni_turn_gain: 0.5
+      teleop_smoothing_alpha: 0.0
+
+      # FPV defaults
+      fpv_lease_ttl_sec: 3.0
+
+hardware_profiles:
+  # --------------------------------------------------------------------------
+  # Differential drive: 2-channel H-bridge style wiring
+  #
+  # Your provided mapping:
+  #   ENA to GPIO 12 (PWM0)
+  #   IN1 to GPIO 23
+  #   IN2 to GPIO 22
+  #   IN3 to GPIO 27
+  #   IN4 to GPIO 17
+  #   ENB to GPIO 13 (PWM1)
+  #
+  # We interpret that as:
+  #   left motor  -> ENA + IN1/IN2
+  #   right motor -> ENB + IN3/IN4
+  # --------------------------------------------------------------------------
+  L298N_diff:
+    gpio:
+      en_left: 12
+      in1_left: 17
+      in2_left: 27
+
+      en_right: 13
+      in1_right: 22
+      in2_right: 23
+    params:
+      pwm_hz: 1000
+      max_pwm: 100
+      pwm_ramp_ms: 0
+      pwm_deadband_pct: 0
+      cmd_rate_hz: 0
+      pwm_slew_pct_per_s: 0
+
+  # --------------------------------------------------------------------------
+  # Omni: two TB6612 boards (4 motor channels)
+  #
+  # Your provided mapping:
+  #
+  # TB6612 #1 (Front motors)
+  #   Front-Left (Motor A)
+  #     PWMA → GPIO 12 (PWM)
+  #     AIN1 → GPIO 5
+  #     AIN2 → GPIO 6
+  #   Front-Right (Motor B)
+  #     PWMB → GPIO 13 (PWM)
+  #     BIN1 → GPIO 16
+  #     BIN2 → GPIO 19
+  #
+  # TB6612 #2 (Rear motors)
+  #   Rear-Left (Motor A)
+  #     PWMA → GPIO 18 (PWM)
+  #     AIN1 → GPIO 20
+  #     AIN2 → GPIO 21
+  #   Rear-Right (Motor B)
+  #     PWMB → GPIO 26 (PWM)
+  #     BIN1 → GPIO 23
+  #     BIN2 → GPIO 24
+  # --------------------------------------------------------------------------
+  dual_tb6612_mecanum:
+    gpio:
+      fl_pwm: 12
+      fl_in1: 5
+      fl_in2: 6
+
+      fr_pwm: 13
+      fr_in1: 16
+      fr_in2: 19
+
+      rl_pwm: 18
+      rl_in1: 20
+      rl_in2: 21
+
+      rr_pwm: 26
+      rr_in1: 23
+      rr_in2: 24
+    params:
+      pwm_hz: 1000
+      max_pwm: 100
+      pwm_ramp_ms: 0
+      pwm_deadband_pct: 0
+      cmd_rate_hz: 0
+      pwm_slew_pct_per_s: 0
+
+  # Differential-drive wiring using TWO TB6612 boards (left and right pairs)
+  # Specific to paired-motor tank-style setups:
+  #   Left Front + Left Rear share the SAME signals
+  #   Right Front + Right Rear share the SAME signals
+  # Matches wiring in GPIO_for_differential_Tb6612_DUAL.md
+  dual_tb6612_diff:
+    gpio:
+      # LEFT side (TB6612 #1)
+      # Channel A + B are tied together in hardware to receive identical commands.
+      fl_pwm: 12
+      fl_in1: 5
+      fl_in2: 6
+
+      # RIGHT side (TB6612 #2)
+      # Channel A + B are tied together in hardware to receive identical commands.
+      fr_pwm: 18
+      fr_in1: 23
+      fr_in2: 24
+    params:
+      pwm_hz: 1000
+      max_pwm: 100
+      pwm_ramp_ms: 80
+      pwm_deadband_pct: 2
+      cmd_rate_hz: 0
+      pwm_slew_pct_per_s: 0
+
+    # If physical wiring yields reversed polarity, set these flags per-robot
+    # invert_left: false
+    # invert_right: false

@@ -1,0 +1,31 @@
+{
+  "execution": {
+    "mode": "live",
+    "non_interactive": true,
+    "reachable_timeout_s": 1.0,
+    "require_confirm": false,
+    "stop_on_error": false
+  },
+  "request_id": "preset.saved.1771041683",
+  "schema_version": "1.0",
+  "sequence": [
+    {
+      "label": "Transit distance",
+      "params": {
+        "meters": 1.0,
+        "speed": 1.0
+      },
+      "playbook": "transit_distance",
+      "step_id": "step-1"
+    }
+  ],
+  "target": {
+    "mode": "all"
+  },
+  "trace": {
+    "confidence": 1.0,
+    "explanation": "saved from execute playbook sequence menu",
+    "translator": "terminal_orchestrator"
+  },
+  "type": "fleet_playbook_request"
+}

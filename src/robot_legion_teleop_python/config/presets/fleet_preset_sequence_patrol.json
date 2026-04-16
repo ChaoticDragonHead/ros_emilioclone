@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "type": "fleet_playbook_request",
+  "request_id": "preset.sequence.patrol.001",
+  "source": {
+    "system": "fleet_orchestrator",
+    "operator": "voice_operator",
+    "session_id": "demo-session-002",
+    "utterance_id": "utt-0042"
+  },
+  "target": {
+    "mode": "selected",
+    "robots": [
+      "robot2",
+      "robot3"
+    ]
+  },
+  "execution": {
+    "mode": "live",
+    "require_confirm": false,
+    "non_interactive": true,
+    "stop_on_error": true,
+    "reachable_timeout_s": 1.0,
+    "max_step_runtime_s": 90.0
+  },
+  "sequence": [
+    {
+      "step_id": "step-1",
+      "label": "Transit out",
+      "playbook": "transit_distance",
+      "params": {
+        "meters": 1.0,
+        "speed": 1.0
+      }
+    },
+    {
+      "step_id": "step-2",
+      "label": "Rotate left",
+      "playbook": "rotate_degrees",
+      "params": {
+        "degrees": 90.0,
+        "speed": 1.0
+      }
+    },
+    {
+      "step_id": "step-3",
+      "label": "Transit return",
+      "playbook": "transit_distance",
+      "params": {
+        "meters": -0.6,
+        "speed": 1.0
+      }
+    },
+    {
+      "step_id": "step-4",
+      "label": "Primitive smoke test",
+      "playbook": "execute_all_commands",
+      "params": {
+        "speed": 0.7
+      }
+    }
+  ],
+  "trace": {
+    "translator": "fleet_orchestrator_llm",
+    "confidence": 0.92,
+    "explanation": "operator requested short patrol then validation sweep"
+  }
+}

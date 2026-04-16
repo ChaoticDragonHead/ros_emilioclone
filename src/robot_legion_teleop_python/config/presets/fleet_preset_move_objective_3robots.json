@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "type": "fleet_playbook_request",
+  "request_id": "preset.move_objective.001",
+  "source": {
+    "system": "fleet_orchestrator",
+    "operator": "voice_operator",
+    "session_id": "demo-session-001",
+    "utterance_id": "utt-0001"
+  },
+  "target": {
+    "mode": "all"
+  },
+  "execution": {
+    "mode": "live",
+    "require_confirm": false,
+    "non_interactive": true,
+    "stop_on_error": false,
+    "reachable_timeout_s": 1.0,
+    "max_step_runtime_s": 60.0
+  },
+  "sequence": [
+    {
+      "step_id": "step-1",
+      "label": "Move to objective",
+      "playbook": "move_xy",
+      "params": {
+        "x_m": 1.2,
+        "y_m": 0.6,
+        "speed": 1.0,
+        "max_detour_m": 0.8,
+        "main_robot": "robot2",
+        "heading_cfg": {
+          "robot1": {
+            "heading_clock": 12.0
+          },
+          "robot3": {
+            "heading_clock": 12.0
+          }
+        }
+      }
+    }
+  ],
+  "trace": {
+    "translator": "fleet_orchestrator_llm",
+    "confidence": 0.97,
+    "explanation": "operator requested coordinated move to shared objective"
+  }
+}

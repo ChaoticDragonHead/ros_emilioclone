@@ -1,0 +1,420 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robot-legion.local/schemas/fleet_playbook_request.schema.json",
+  "title": "Fleet Playbook Request",
+  "description": "Canonical request contract for Fleet Orchestrator -> robot_legion_teleop_python playbook execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "type",
+    "request_id",
+    "target",
+    "execution",
+    "sequence"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "type": {
+      "type": "string",
+      "const": "fleet_playbook_request"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "operator"],
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "session_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "utterance_id": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["all", "selected"]
+        },
+        "robots": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "selected"
+              }
+            }
+          },
+          "then": {
+            "required": ["robots"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "all"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": ["robots"]
+            }
+          }
+        }
+      ]
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "require_confirm",
+        "non_interactive",
+        "stop_on_error",
+        "reachable_timeout_s"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["live", "dry_run"]
+        },
+        "require_confirm": {
+          "type": "boolean"
+        },
+        "non_interactive": {
+          "type": "boolean"
+        },
+        "stop_on_error": {
+          "type": "boolean"
+        },
+        "reachable_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 5.0
+        },
+        "max_step_runtime_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 300.0
+        }
+      }
+    },
+    "sequence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sequence_step"
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "translator": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "explanation": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sequence_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "playbook", "params"],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "playbook": {
+          "type": "string",
+          "enum": [
+            "move_xy",
+            "execute_all_commands",
+            "transit_distance",
+            "rotate_degrees"
+          ]
+        },
+        "target_override": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["inherit", "all", "selected"]
+            },
+            "robots": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]+$"
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            }
+          }
+        },
+        "params": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/params_move_xy"
+            },
+            {
+              "$ref": "#/$defs/params_execute_all"
+            },
+            {
+              "$ref": "#/$defs/params_transit_distance"
+            },
+            {
+              "$ref": "#/$defs/params_rotate_degrees"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "playbook": {
+                "const": "move_xy"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/params_move_xy"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "playbook": {
+                "const": "execute_all_commands"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/params_execute_all"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "playbook": {
+                "const": "transit_distance"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/params_transit_distance"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "playbook": {
+                "const": "rotate_degrees"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/params_rotate_degrees"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "params_common_speed": {
+      "type": "object",
+      "properties": {
+        "speed": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1.5,
+          "default": 1.0
+        }
+      }
+    },
+    "params_move_xy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_m",
+        "y_m",
+        "speed",
+        "max_detour_m",
+        "main_robot",
+        "heading_cfg"
+      ],
+      "properties": {
+        "x_m": {
+          "type": "number",
+          "minimum": -20.0,
+          "maximum": 20.0
+        },
+        "y_m": {
+          "type": "number",
+          "minimum": -20.0,
+          "maximum": 20.0
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1.5,
+          "default": 1.0
+        },
+        "max_detour_m": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 5.0,
+          "default": 0.8
+        },
+        "main_robot": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "heading_cfg": {
+          "type": "object",
+          "description": "Heading of each non-main robot relative to main robot, expressed as clock value.",
+          "minProperties": 0,
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9._-]+$": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["heading_clock"],
+              "properties": {
+                "heading_clock": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 12.0,
+                  "default": 12.0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "params_execute_all": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speed"],
+      "properties": {
+        "speed": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1.5,
+          "default": 1.0
+        }
+      }
+    },
+    "params_transit_distance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["meters", "speed"],
+      "properties": {
+        "meters": {
+          "type": "number",
+          "minimum": -20.0,
+          "maximum": 20.0
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1.5,
+          "default": 1.0
+        }
+      }
+    },
+    "params_rotate_degrees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["degrees", "speed"],
+      "properties": {
+        "degrees": {
+          "type": "number",
+          "minimum": -720.0,
+          "maximum": 720.0
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1.5,
+          "default": 1.0
+        }
+      }
+    }
+  }
+}
